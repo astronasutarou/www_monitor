@@ -22,7 +22,7 @@ optional arguments:
   --title TITLE        title of the website
   --interval INTERVAL  monitoring interval in seconds
   --slack SLACK        webhook URL of your slack app
-  --debug              enable debug output mode
+  --debug              enabling debug outputs
 ```
 
 ## License
