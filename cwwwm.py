@@ -82,7 +82,7 @@ if __name__ == '__main__':
   parser.add_argument('--slack', action='store', default=None,
                       help='webhook URL of your slack app')
   parser.add_argument('--debug', action='store_const', const='DEBUG',
-                      help='enable debug output mode')
+                      help='enabling debug outputs')
 
   args = parser.parse_args()
 
