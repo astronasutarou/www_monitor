@@ -1,6 +1,13 @@
 # Classical Website Monitor
+This project provides a simple script to monitor updates of a static website.
 
-~~~:sh
+
+## Dependences
+- &ge;python2.7
+- modules: argparse, requests, hashlib, logging, time
+
+## Usage
+```
 usage: cwwwm.py [-h] [--title TITLE] [--interval INTERVAL] [--slack SLACK]
                 [--debug]
                 url
@@ -16,4 +23,7 @@ optional arguments:
   --interval INTERVAL  monitoring interval in seconds
   --slack SLACK        webhook URL of your slack app
   --debug              enable debug output mode
-~~~
+```
+
+## License
+This project is licensed under the MIT License - see the LICENSE.md file for details.
