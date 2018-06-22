@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 from __future__ import print_function, absolute_import, division
 from argparse import ArgumentParser as ap
-import requests, hashlib, logging, time
+import requests, hashlib, logging, time, json
+import subprocess as sp
 
 
 def get_logger(name = None, loglevel = None, **options):
@@ -16,10 +17,13 @@ def get_logger(name = None, loglevel = None, **options):
 
 
 class cwwwmHandler(object):
-  def __init__(self, url, slack_url=None, logger=None, title=None, **options):
+  def __init__(self, url, slack_url=None, hook_command=None,
+               username=None,
+               logger=None, title=None, **options):
     self.url = url
     self.slack = slack_url
-    self.prev_hash = self.get_hashed_website()
+    self.hook = hook_command
+    self.prev_hash = None #self.hash_md5(self.fetch_website())
     self.title = title or url
 
     self.logger = logger.getChild('web') \
@@ -28,7 +32,9 @@ class cwwwmHandler(object):
 
   def __call__(self):
     try:
-      curr_hash = self.get_hashed_website()
+      curr_text= self.fetch_website()
+      curr_hash = self.hash_md5(curr_text)
+
     except requests.exceptions.RequestException as e:
       self.logger.error(str(e))
       raise Exception(str(e))
@@ -36,16 +42,28 @@ class cwwwmHandler(object):
       self.prev_hash = curr_hash
       self.logger.debug('hash: {}'.format(str(curr_hash)))
       self.logger.info('website {} updated'.format(self.title))
-      if self.slack is not None:
-        text = '<{}|{}> updated'.format(self.url,self.title)
-        self.post_to_slack(text)
 
-  def get_hashed_website(self):
+      text = '<{}|{}> updated'.format(self.url,self.title)
+      if self.hook is not None:
+        hook = sp.Popen([self.hook,], stdin=sp.PIPE, stdout=sp.PIPE)
+        hook.stdin.write(curr_text)
+        attachment = json.loads(hook.communicate()[0])
+        self.logger.info('attach: {}'.format(attachment.keys()))
+      else:
+        attachment = None
+
+      if self.slack is not None:
+        self.post_to_slack(text=text, attachment=attachment)
+
+  def hash_md5(self, text):
+    h = hashlib.md5()
+    h.update(text)
+    return h.hexdigest()
+
+  def fetch_website(self):
     r = requests.get(self.url)
     r.raise_for_status()
-    h = hashlib.md5()
-    h.update(r.text)
-    return h.hexdigest()
+    return r.content
 
   def post_to_slack(self, text, attachment=None):
     return requests.post(
@@ -79,6 +97,8 @@ if __name__ == '__main__':
                       help='title of the website')
   parser.add_argument('--interval', type=float, action='store', default=3600.,
                       help='monitoring interval in seconds')
+  parser.add_argument('--hook', action='store', default=None,
+                      help='hook command to post slack')
   parser.add_argument('--slack', action='store', default=None,
                       help='webhook URL of your slack app')
   parser.add_argument('--debug', action='store_const', const='DEBUG',
@@ -89,10 +109,10 @@ if __name__ == '__main__':
   options = {
     'url': args.url,
     'slack_url': args.slack,
+    'hook_command': args.hook,
     'title': args.title,
     'loglevel': args.debug,
   }
 
   server = IntervalTaskExecutor(args.interval, cwwwmHandler, **options)
   server.start()
-
