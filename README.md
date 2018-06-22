@@ -21,7 +21,7 @@ optional arguments:
   -h, --help           show this help message and exit
   --title TITLE        title of the website
   --interval INTERVAL  monitoring interval in seconds
-  --slack SLACK        webhook URL of your slack app
+  --hook HOOK          the path to a hook command
   --debug              enabling debug outputs
 ```
 
