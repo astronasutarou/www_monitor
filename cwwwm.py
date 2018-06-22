@@ -34,26 +34,25 @@ class cwwwmHandler(object):
     try:
       curr_text= self.fetch_website()
       curr_hash = self.hash_md5(curr_text)
-
     except requests.exceptions.RequestException as e:
       self.logger.error(str(e))
       raise Exception(str(e))
+
     if curr_hash != self.prev_hash:
+      print(self.prev_hash, curr_hash)
       self.prev_hash = curr_hash
       self.logger.debug('hash: {}'.format(str(curr_hash)))
       self.logger.info('website {} updated'.format(self.title))
 
-      text = '<{}|{}> updated'.format(self.url,self.title)
       if self.hook is not None:
-        hook = sp.Popen([self.hook,], stdin=sp.PIPE, stdout=sp.PIPE)
-        hook.stdin.write(curr_text)
-        attachment = json.loads(hook.communicate()[0])
-        self.logger.info('attach: {}'.format(attachment.keys()))
-      else:
-        attachment = None
-
-      if self.slack is not None:
-        self.post_to_slack(text=text, attachment=attachment)
+        payload = {
+          'url': self.url,
+          'content': curr_text,
+        }
+        hook = sp.Popen([self.hook,], stdin=sp.PIPE)
+        hook.stdin.write(json.dumps(payload))
+        hook.stdin.close()
+        self.logger.info('hook status: {}'.format(hook.wait()))
 
   def hash_md5(self, text):
     h = hashlib.md5()
@@ -64,10 +63,6 @@ class cwwwmHandler(object):
     r = requests.get(self.url)
     r.raise_for_status()
     return r.content
-
-  def post_to_slack(self, text, attachment=None):
-    return requests.post(
-      self.slack, json={'text': text, 'attachments': [attachment,]})
 
 
 class IntervalTaskExecutor(object):
@@ -98,9 +93,7 @@ if __name__ == '__main__':
   parser.add_argument('--interval', type=float, action='store', default=3600.,
                       help='monitoring interval in seconds')
   parser.add_argument('--hook', action='store', default=None,
-                      help='hook command to post slack')
-  parser.add_argument('--slack', action='store', default=None,
-                      help='webhook URL of your slack app')
+                      help='the path to a hook command')
   parser.add_argument('--debug', action='store_const', const='DEBUG',
                       help='enabling debug outputs')
 
@@ -108,7 +101,6 @@ if __name__ == '__main__':
 
   options = {
     'url': args.url,
-    'slack_url': args.slack,
     'hook_command': args.hook,
     'title': args.title,
     'loglevel': args.debug,
