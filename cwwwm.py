@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function, absolute_import, division
 from argparse import ArgumentParser as ap
-import requests, hashlib, logging, time, json
+import requests, urllib, hashlib, logging, time, json
 import subprocess as sp
 
 
@@ -20,7 +20,7 @@ class cwwwmHandler(object):
   def __init__(self, url, slack_url=None, hook_command=None,
                username=None,
                logger=None, title=None, **options):
-    self.url = url
+    self.url = url.replace('+', r'%2B')
     self.slack = slack_url
     self.hook = hook_command
     self.prev_hash = None #self.hash_md5(self.fetch_website())
