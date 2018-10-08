@@ -39,7 +39,6 @@ class cwwwmHandler(object):
       raise Exception(str(e))
 
     if curr_hash != self.prev_hash:
-      print(self.prev_hash, curr_hash)
       self.prev_hash = curr_hash
       self.logger.debug('hash: {}'.format(str(curr_hash)))
       self.logger.info('website {} updated'.format(self.title))
